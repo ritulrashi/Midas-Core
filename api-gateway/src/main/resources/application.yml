@@ -1,0 +1,50 @@
+server:
+  port: ${API_GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://localhost:${AUTH_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/auth/**
+
+        - id: transaction-service
+          uri: http://localhost:${TRANSACTION_SERVICE_PORT:8082}
+          predicates:
+            - Path=/api/transactions/**
+
+        - id: reconciliation-service
+          uri: http://localhost:${RECONCILIATION_SERVICE_PORT:8083}
+          predicates:
+            - Path=/api/reconciliation/**
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+            allowed-headers: "*"
+
+jwt:
+  secret: ${JWT_SECRET:replace-this-with-a-real-256-bit-secret-key-in-prod}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.midas.gateway: DEBUG

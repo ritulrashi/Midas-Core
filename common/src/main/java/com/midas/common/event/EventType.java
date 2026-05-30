@@ -1,0 +1,9 @@
+package com.midas.common.event;
+
+public enum EventType {
+    TRANSACTION_CREATED,
+    TRANSACTION_PROCESSING,
+    TRANSACTION_COMPLETED,
+    TRANSACTION_FAILED,
+    TRANSACTION_REVERSED
+}
