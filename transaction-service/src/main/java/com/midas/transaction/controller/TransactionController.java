@@ -2,6 +2,7 @@ package com.midas.transaction.controller;
 
 import com.midas.common.dto.ApiResponse;
 import com.midas.transaction.dto.CreateTransactionRequest;
+import com.midas.transaction.dto.UpdateTransactionStatusRequest;
 import com.midas.transaction.model.Transaction;
 import com.midas.transaction.service.TransactionService;
 import jakarta.validation.Valid;
@@ -34,6 +35,14 @@ public class TransactionController {
     public ResponseEntity<ApiResponse<Transaction>> getById(@PathVariable UUID id) {
         Transaction transaction = transactionService.findById(id);
         return ResponseEntity.ok(ApiResponse.ok(transaction));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<Transaction>> updateStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateTransactionStatusRequest request) {
+        Transaction updated = transactionService.updateStatus(id, request.getStatus(), request.getFailureReason());
+        return ResponseEntity.ok(ApiResponse.ok(updated));
     }
 
     @GetMapping("/my")
