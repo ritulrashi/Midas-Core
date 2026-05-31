@@ -181,6 +181,93 @@ Flyway runs automatically on startup and creates all required schema objects.
 
 ---
 
+## Restarting from Scratch
+
+Use this sequence when you need a clean slate — e.g. after schema changes, corrupted volumes, or a broken Kafka state.
+
+### 1. Tear down containers and volumes
+
+```bash
+docker compose down -v
+```
+
+`-v` removes the named `midas_postgres_data` volume so the next startup re-runs all Flyway migrations and the Postgres init script from zero.
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Set a real `JWT_SECRET` (minimum 32 characters) in `.env`:
+
+```dotenv
+JWT_SECRET=your-256-bit-secret-here-min-32-chars
+```
+
+### 3. Start infrastructure (Kafka + Postgres + topic init)
+
+```bash
+docker compose up -d
+```
+
+`docker compose up` starts three ordered stages automatically:
+
+1. **Zookeeper** starts first.
+2. **Kafka** starts and passes its health check (`kafka-broker-api-versions`).
+3. **`kafka-init`** runs and creates both topics:
+
+```bash
+kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+  --topic midas.transaction.events --partitions 3 --replication-factor 1 \
+  --config retention.ms=604800000
+
+kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+  --topic midas.transaction.events.dlq --partitions 1 --replication-factor 1 \
+  --config retention.ms=2592000000
+```
+
+Kafka UI is available at http://localhost:8090 once the broker is healthy.
+
+To confirm topics were created:
+
+```bash
+docker logs midas-kafka-init
+# Expected last line: Kafka topics created.
+```
+
+### 4. Build all modules
+
+```bash
+./mvnw clean install -DskipTests
+```
+
+### 5. Start services
+
+Open one terminal per service in the order below. Flyway runs automatically on each startup.
+
+```bash
+# Terminal 1
+cd api-gateway && ../mvnw spring-boot:run
+
+# Terminal 2
+cd auth-service && ../mvnw spring-boot:run
+
+# Terminal 3
+cd transaction-service && ../mvnw spring-boot:run
+
+# Terminal 4
+cd reconciliation-service && ../mvnw spring-boot:run
+
+# Terminal 5
+cd notification-worker && ../mvnw spring-boot:run
+
+# Terminal 6
+cd ledger-worker && ../mvnw spring-boot:run
+```
+
+---
+
 ## API Reference
 
 All requests go through the gateway at `http://localhost:8080`. Endpoints under `/api/transactions` and `/api/reconciliation` require a valid JWT in the `Authorization: Bearer <token>` header.
