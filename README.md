@@ -356,6 +356,71 @@ Paginated list of transactions initiated by the authenticated user.
 
 ---
 
+### Reconciliation — `/api/reconciliation`
+
+All endpoints require `Authorization: Bearer <token>`.
+
+#### `GET /api/reconciliation/records`
+
+Paginated list of all reconciliation records. Optionally filter by status.
+
+**Query parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `status` | `ReconciliationStatus` enum | — | Filter by `RECEIVED`, `MATCHED`, `UNMATCHED`, or `DISPUTED` |
+| `page` | integer | `0` | Zero-based page index |
+| `size` | integer | `20` | Page size |
+| `sort` | string | `processedAt` | Sort field |
+
+**Response `200 OK`:**
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": "uuid",
+        "transactionId": "uuid",
+        "eventType": "TRANSACTION_CREATED",
+        "amount": 250.00,
+        "currency": "USD",
+        "fromAccount": "acc-001",
+        "toAccount": "acc-002",
+        "status": "RECEIVED",
+        "notes": null,
+        "eventOccurredAt": "2026-05-30T10:00:00Z",
+        "processedAt": "2026-05-30T10:00:01Z"
+      }
+    ],
+    "totalElements": 100,
+    "totalPages": 5,
+    "number": 0,
+    "size": 20
+  }
+}
+```
+
+---
+
+#### `GET /api/reconciliation/records/{id}`
+
+Fetch a single reconciliation record by its UUID.
+
+**Response `200 OK`:** Reconciliation record object (same shape as above).
+
+---
+
+#### `GET /api/reconciliation/records/transaction/{transactionId}`
+
+Fetch the reconciliation record for a specific transaction ID.
+
+**Response `200 OK`:** Reconciliation record object.
+
+**Note:** Returns `404` if no record has been created yet for the given transaction (i.e. the Kafka event has not yet been consumed).
+
+---
+
 ## Event Schema
 
 All Kafka messages are JSON-serialised `TransactionEvent` objects:
